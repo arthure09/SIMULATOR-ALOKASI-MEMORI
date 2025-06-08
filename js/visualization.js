@@ -1,8 +1,8 @@
 // js/visualization.js
 
 /**
- * Menghitung total ukuran semua blok untuk penskalaan yang konsisten dalam visualisasi.
- * @param {number[]} blocks - Array ukuran blok.
+ * Menghitung total ukuran semua blok untuk penskalaan visualisasi.
+ * @param {number[]} blocks - Ukuran blok.
  * @returns {number} Jumlah semua ukuran blok.
  */
 export function getMaxTotalSize(blocks) {
@@ -10,63 +10,56 @@ export function getMaxTotalSize(blocks) {
 }
 
 /**
- * Membangun elemen DOM tunggal yang mewakili blok memori.
- * @param {number} blockSize - Ukuran sisa blok saat ini.
- * @param {number} allocatedSize - Jumlah memori yang dialokasikan ke blok ini.
- * @param {boolean|string} isAllocated - True jika dialokasikan, false jika awal/kosong, 'unallocated' untuk proses yang tidak muat.
- * @param {string} label - Label untuk blok (misalnya, "B1").
- * @param {number} maxTotalSize - Ukuran total semua blok awal untuk penskalaan.
- * @param {number} originalSize - Ukuran asli blok ini sebelum alokasi.
- * @param {boolean} isPreallocatedVisual - True jika ini adalah visualisasi alokasi proses awal (80 unit).
- * @returns {HTMLElement} Elemen div yang dibuat untuk blok memori.
+ * Membangun elemen DOM untuk blok memori.
+ * @param {number} blockSize - Ukuran sisa blok.
+ * @param {number} allocatedSize - Memori yang dialokasikan.
+ * @param {boolean|string} isAllocated - Status alokasi.
+ * @param {string} label - Label blok.
+ * @param {number} maxTotalSize - Ukuran total semua blok awal.
+ * @param {number} originalSize - Ukuran asli blok.
+ * @param {boolean} isPreallocatedVisual - True jika ini visualisasi alokasi proses awal (80 unit).
+ * @returns {HTMLElement} Elemen div blok memori.
  */
 export function createMemoryBlockElement(
   blockSize, allocatedSize, isAllocated, label, maxTotalSize, originalSize, isPreallocatedVisual = false
 ) {
-  // Hitung lebar persentase berdasarkan ukuran blok asli relatif terhadap total memori awal
-  const pct = (originalSize / maxTotalSize) * 100;
-  // Hitung persentase ruang yang dialokasikan dalam blok spesifik ini
-  const allocPct = (allocatedSize / originalSize) * 100;
-  // Hitung persentase ruang sisa (bebas) dalam blok spesifik ini
-  const remPct = ((originalSize - allocatedSize) / originalSize) * 100;
+  const pct = (originalSize / maxTotalSize) * 100; // Lebar persentase
+  const allocPct = (allocatedSize / originalSize) * 100; // Persentase ruang teralokasi
+  const remPct = ((originalSize - allocatedSize) / originalSize) * 100; // Persentase ruang sisa
 
   const div = document.createElement('div');
   div.className = 'relative flex flex-col items-center justify-center p-2 rounded-lg shadow-md border';
-  div.style.width = `${pct}%`; // Set width based on original size
-  div.style.minWidth = '50px'; // Ensure minimum visibility for small blocks
+  div.style.width = `${pct}%`;
+  div.style.minWidth = '50px';
   div.style.height = '80px';
   div.style.margin = '0 2px';
-  // Add a title for hover information
   div.title = `${label}: Asli ${originalSize} unit (Sisa: ${blockSize} unit)`;
 
-  // Tentukan warna untuk status yang berbeda
   let borderColor = 'border-gray-400';
-  let blockBg = 'bg-gray-300'; // Default background for the entire block
-  let allocBg = 'bg-green-500'; // Color for allocated portion
-  let remBg = 'bg-blue-500'; // Color for remaining (free) portion
+  let blockBg = 'bg-gray-300'; // Latar belakang default
+  let allocBg = 'bg-green-500'; // Warna bagian teralokasi
+  let remBg = 'bg-blue-500'; // Warna bagian sisa
 
   // Sesuaikan warna berdasarkan status alokasi
   if (isAllocated === 'unallocated') {
-    blockBg = 'bg-red-300'; // Indicate a block that couldn't be allocated to
+    blockBg = 'bg-red-300';
     allocBg = 'bg-red-500';
     remBg = 'bg-red-500';
   } else if (isAllocated === false) {
-    // For initial blocks or blocks that were never allocated to
     blockBg = 'bg-gray-300';
-    allocBg = 'bg-gray-300'; // No distinct allocated part visually for initial state
-    remBg = 'bg-gray-300'; // No distinct remaining part visually for initial state
+    allocBg = 'bg-gray-300';
+    remBg = 'bg-gray-300';
   }
 
-  // Jika ini adalah proses yang dialokasikan di awal (80 unit), warnai merah
+  // Jika proses awal teralokasi (80 unit), warnai merah
   if (isPreallocatedVisual) {
-      allocBg = 'bg-red-500'; // Gunakan warna merah untuk bagian yang dialokasikan
+      allocBg = 'bg-red-500';
   }
-
 
   div.classList.add(borderColor);
-  div.classList.add(blockBg); // Apply the main background color
+  div.classList.add(blockBg);
 
-  // Label (e.g., B1) and original size text
+  // Label dan ukuran asli
   const labelDiv = document.createElement('div');
   labelDiv.className = "text-sm font-semibold text-gray-800 z-10";
   labelDiv.textContent = label;
@@ -77,7 +70,7 @@ export function createMemoryBlockElement(
   sizeDiv.textContent = `${originalSize} unit`;
   div.appendChild(sizeDiv);
 
-  // Memvisualisasikan bagian yang dialokasikan dan sisa sebagai div internal
+  // Visualisasi bagian teralokasi dan sisa
   if (isAllocated && allocatedSize > 0) {
     const allocatedPart = document.createElement('div');
     allocatedPart.className = `absolute top-0 left-0 h-full ${allocBg} rounded-lg`;
@@ -96,14 +89,12 @@ export function createMemoryBlockElement(
 }
 
 /**
- * Merender hasil simulasi untuk algoritma alokasi memori tertentu.
- * Membuat dan menambahkan elemen HTML untuk menampilkan status memori awal,
- * tabel alokasi, dan status memori akhir.
- * @param {string} title - Judul algoritma (misalnya, "Algoritma First Fit").
- * @param {object} result - Objek hasil dari algoritma alokasi (allocations, finalBlocks).
- * @param {number[]} initialBlocks - Ukuran blok memori awal untuk visualisasi yang konsisten.
- * @param {string} duration - Waktu eksekusi algoritma dalam milidetik.
- * @returns {HTMLElement} Elemen div kontainer yang menampung semua hasil untuk algoritma ini.
+ * Merender hasil simulasi algoritma alokasi memori.
+ * @param {string} title - Judul algoritma.
+ * @param {object} result - Objek hasil alokasi.
+ * @param {number[]} initialBlocks - Ukuran blok memori awal.
+ * @param {string} duration - Waktu eksekusi algoritma.
+ * @returns {HTMLElement} Kontainer div hasil algoritma.
  */
 export function renderSimulationResult(title, result, initialBlocks, duration) {
   const container = document.createElement('div');
@@ -153,10 +144,9 @@ export function renderSimulationResult(title, result, initialBlocks, duration) {
   result.allocations.forEach(row => {
     const tr = document.createElement('tr');
     tr.className = 'border-b hover:bg-gray-100';
-    // Menambahkan kelas CSS untuk warna merah pada ProcessId jika isPreallocated
     let processIdClass = '';
     if (row.isPreallocated) {
-        processIdClass = 'text-red-600 font-bold'; // Gaya untuk P1 yang pre-allocated
+        processIdClass = 'text-red-600 font-bold';
     }
     tr.innerHTML = `
       <td class="py-3 px-6 whitespace-nowrap ${processIdClass}">${row.processId}</td>
@@ -178,12 +168,12 @@ export function renderSimulationResult(title, result, initialBlocks, duration) {
     const orig = initialBlocks[i];
     const alloc = orig - size;
 
-    // Perbaikan di sini: Periksa apakah ADA alokasi ke blok ini yang ditandai sebagai 'isPreallocated'
+    // Periksa alokasi 'isPreallocated' ke blok ini
     const isPreallocatedVisual = result.allocations.some(
       a => a.blockIndex === i && a.isPreallocated === true
     );
 
-    // Tentukan apakah blok ini dialokasikan sama sekali (tidak harus oleh P1)
+    // Tentukan apakah blok ini dialokasikan
     const wasBlockAllocated = result.allocations.some(a => a.blockIndex === i && a.blockId !== 'Unallocated');
 
     finalBlocksDiv.appendChild(createMemoryBlockElement(size, alloc, wasBlockAllocated, `B${i+1}`, maxTotalInitialSize, orig, isPreallocatedVisual));
